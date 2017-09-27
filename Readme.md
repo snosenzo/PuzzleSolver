@@ -17,4 +17,18 @@ I am currently traversing generic states that map to each respective problem, an
 
 The problems still need fleshing out with regards to mapping them to states, but I believe that the traversal will still work. I will certainly come in to office hours for further understanding if necessary.
 
+
+
+##TODOS
+Figure out how to use the compare for both greedy and Astar.
+
+Figure out how to map the problem states to the search agent states
+
+Figure out how to do heuristic functions outside of problem
+
+Do I generate the whole graph and then navigate it?
+
+
+
+
 -Sam Nosenzo 

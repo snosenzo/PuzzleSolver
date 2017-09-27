@@ -110,25 +110,29 @@ public class SearchAgent {
         return false;
     }
 
-    // WIP
     private boolean iddfs() {
         int maxDepth = 1;
-        int currentDepth = 1;
+        int currentDepth = 0;
         explored.put(currentState.value, currentState);
         path.add(currentState);
-        PriorityQueue<State> fringe = new PriorityQueue<State>();
+        LinkedList<State> fringe = new LinkedList<State>();
         fringe.addAll(currentState.children);
-        while(fringe.size() > 0) {
+        while(maxDepth < Integer.MAX_VALUE) {
+            while (fringe.size() > 0 || currentDepth > maxDepth) {
 
-            if(problem.isGoalState(currentState)) {
-                System.out.println("Problem solved");
-                return true;
+                if (problem.isGoalState(currentState)) {
+                    System.out.println("Problem solved");
+                    return true;
+                }
+                currentState = fringe.remove(fringe.size() - 1);
+                addFringeStates(fringe, currentState);
+                explored.put(currentState.value, currentState);
+                currentDepth++;
             }
-
-            currentState = fringe.poll();
-            addFringeStates(fringe, currentState);
-            explored.put(currentState.value, currentState);
+            maxDepth++;
         }
+
+        System.out.println("Reached maximum depth: ");
         return false;
     }
 
@@ -146,13 +150,21 @@ public class SearchAgent {
     }
 
 
-    public class State {
+    public class State implements Comparator<State> {
         private String value;
         private int stateID;
         private double pathCost;
+        private State parent;
         private ArrayList<State> children;
         private State(String v, int id, ArrayList<State> childnodes) {
+            value = v;
+            stateID = id;
+            children = childnodes;
+        }
 
+        @Override
+        public int compare(State s1, State s2) {
+            return 0;
         }
     }
 
@@ -205,13 +217,36 @@ public class SearchAgent {
         }
 
         public State initialState() {
+            int[] sensorTargets = new int[sensors.size()];
+
             StringBuilder stateValue = new StringBuilder("");
             for(int i = 0; i < sensors.size(); i++) {
-                stateValue.append(i + " ");
-                stateValue.append("\n");
+                sensorTargets[i] = -1;
+                stateValue.append(" ");
+                stateValue.append(",");
             }
+
             return new State("", 3, new ArrayList<State>());
         }
+
+        private String getStateValue(int[] sensorTargets) {
+            StringBuilder s = new StringBuilder("");
+            for(int i = 0; i < sensorTargets.length; i++) {
+                s.append(sensorTargets[i]);
+                if(i < sensorTargets.length - 1) s.append(",");
+            }
+            return s.toString();
+        }
+
+        public String getReadableValue(int[] sensorTargets) {
+            StringBuilder s = new StringBuilder("");
+            for(int i = 0; i < sensorTargets.length; i++) {
+                s.append(sensorTargets[i]);
+                if(i < sensorTargets.length - 1) s.append(",");
+            }
+            return s.toString();
+        }
+
 
         @Override
         public boolean isGoalState(State state) {
@@ -255,8 +290,6 @@ public class SearchAgent {
                 locY = y;
             }
         }
-
-
     }
 
 
