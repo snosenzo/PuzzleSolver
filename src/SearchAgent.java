@@ -8,8 +8,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class SearchAgent {
-    private Hashtable<String, State> explored;
-    private ArrayList<State> fringe;
+    private Hashtable<Integer, State> explored;
     private ArrayList<State> path;
     private int searchType;
     private String searchTypeName;
@@ -73,7 +72,7 @@ public class SearchAgent {
     }
 
     private boolean breadthFirst() {
-        explored.put(currentState.value, currentState);
+        explored.put(currentState.hashValue, currentState);
         path.add(currentState);
         LinkedList<State> fringe = new LinkedList<State>();
         fringe.addAll(currentState.children);
@@ -86,13 +85,14 @@ public class SearchAgent {
 
             currentState = fringe.poll();
             addFringeStates(fringe, currentState);
-            explored.put(currentState.value, currentState);
+            explored.put(currentState.hashValue, currentState);
+            path.add(currentState);
         }
         return false;
     }
 
     private boolean unicost() {
-        explored.put(currentState.value, currentState);
+        explored.put(currentState.hashValue, currentState);
         path.add(currentState);
         PriorityQueue<State> fringe = new PriorityQueue<State>();
         fringe.addAll(currentState.children);
@@ -105,7 +105,8 @@ public class SearchAgent {
 
             currentState = fringe.poll();
             addFringeStates(fringe, currentState);
-            explored.put(currentState.value, currentState);
+            explored.put(currentState.hashValue, currentState);
+            path.add(currentState);
         }
         return false;
     }
@@ -113,7 +114,7 @@ public class SearchAgent {
     private boolean iddfs() {
         int maxDepth = 1;
         int currentDepth = 0;
-        explored.put(currentState.value, currentState);
+        explored.put(currentState.hashValue, currentState);
         path.add(currentState);
         LinkedList<State> fringe = new LinkedList<State>();
         fringe.addAll(currentState.children);
@@ -126,7 +127,7 @@ public class SearchAgent {
                 }
                 currentState = fringe.remove(fringe.size() - 1);
                 addFringeStates(fringe, currentState);
-                explored.put(currentState.value, currentState);
+                explored.put(currentState.hashValue, currentState);
                 currentDepth++;
             }
             maxDepth++;
@@ -139,7 +140,7 @@ public class SearchAgent {
     private void addFringeStates(Collection<State> fringe, State cState) {
         for(int i = 0; i < cState.children.size(); i++) {
             State s = cState.children.get(i);
-            if(explored.get(s.value) == null) {
+            if(explored.get(s.hashValue) == null) {
                 fringe.add(s);
             }
         }
@@ -151,15 +152,23 @@ public class SearchAgent {
 
 
     public class State implements Comparator<State> {
-        private String value;
+        private int[] value;
+        private int hashValue;
         private int stateID;
         private double pathCost;
         private State parent;
         private ArrayList<State> children;
-        private State(String v, int id, ArrayList<State> childnodes) {
-            value = v;
-            stateID = id;
-            children = childnodes;
+        private State(int[] conf) {
+            value = conf.clone();
+            hashValue = Arrays.hashCode(value);
+        }
+        private State(int[] conf, int hashCode) {
+            value = conf.clone();
+            hashValue = hashCode;
+        }
+
+        private void addChildren(ArrayList<State> c) {
+            children = c;
         }
 
         @Override
@@ -183,6 +192,7 @@ public class SearchAgent {
         private String type;
         private ArrayList<Sensor> sensors;
         private ArrayList<Target> targets;
+        private Hashtable<Integer, State> createdStates;
         private Monitor(Scanner fileScan) throws IOException{
             sensors = new ArrayList<>();
             targets = new ArrayList<>();
@@ -218,15 +228,15 @@ public class SearchAgent {
 
         public State initialState() {
             int[] sensorTargets = new int[sensors.size()];
-
             StringBuilder stateValue = new StringBuilder("");
             for(int i = 0; i < sensors.size(); i++) {
-                sensorTargets[i] = -1;
-                stateValue.append(" ");
-                stateValue.append(",");
+                sensorTargets[i] = 0; // all point to first sensor
             }
 
-            return new State("", 3, new ArrayList<State>());
+            State init = new State(sensorTargets);
+            createdStates.put(init.hashValue, init);
+
+            return init;
         }
 
         private String getStateValue(int[] sensorTargets) {
@@ -241,7 +251,7 @@ public class SearchAgent {
         public String getReadableValue(int[] sensorTargets) {
             StringBuilder s = new StringBuilder("");
             for(int i = 0; i < sensorTargets.length; i++) {
-                s.append(sensorTargets[i]);
+                s.append(targets.get(sensorTargets[i]).id);
                 if(i < sensorTargets.length - 1) s.append(",");
             }
             return s.toString();
@@ -255,6 +265,18 @@ public class SearchAgent {
 
         @Override
         public ArrayList<State> expand(State state) {
+            ArrayList<State> children = new ArrayList<>();
+            for(int i = 0; i < state.value.length; i++) {
+                int[] childConfig = state.value.clone();
+                for(int j = childConfig[i] + 1; j%targets.size() != childConfig[i]; j++) {
+                    childConfig[i] = j;
+                    int hash = Arrays.hashCode(childConfig);
+                    if(!createdStates.containsKey(hash)){
+                        State s = new State(childConfig, hash);
+                        createdStates.put(hash, s);
+                    }
+                }
+            }
             return new ArrayList<State>();
         }
 
