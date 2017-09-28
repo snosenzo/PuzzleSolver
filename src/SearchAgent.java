@@ -23,7 +23,6 @@ public class SearchAgent {
 
     public SearchAgent() {
         explored = new Hashtable<>();
-        fringe = new ArrayList<>();
         path = new ArrayList<>();
     }
 
@@ -155,7 +154,7 @@ public class SearchAgent {
     }
 
 
-    public class State implements Comparator<State> {
+    public class State {
         private int[] value;
         private int hashValue;
         private ArrayList<Edge> children;
@@ -398,8 +397,7 @@ public class SearchAgent {
 
         public State initialState() {
             StringBuilder stateValue = new StringBuilder("");
-
-            return new State("", 3, new ArrayList<State>());
+            return new State(new int[2], 3, 1);
         }
 
         @Override
@@ -408,8 +406,8 @@ public class SearchAgent {
         }
 
         @Override
-        public ArrayList<State> expand(State currentState) {
-            return new ArrayList<State>();
+        public ArrayList<Edge> expand(State currentState) {
+            return new ArrayList<Edge>();
         }
 
 
