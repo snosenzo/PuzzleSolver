@@ -74,7 +74,8 @@ public class SearchAgent {
     private boolean breadthFirst() {
         explored.put(currentState.hashValue, currentState);
         path.add(currentState);
-        LinkedList<State> fringe = new LinkedList<State>();
+        currentState.addChildren();
+        LinkedList<Edge> fringe = new LinkedList<Edge>();
         fringe.addAll(currentState.children);
         while(fringe.size() > 0) {
 
@@ -83,7 +84,8 @@ public class SearchAgent {
                 return true;
             }
 
-            currentState = fringe.poll();
+            currentState = fringe.poll().end;
+            currentState.addChildren();
             addFringeStates(fringe, currentState);
             explored.put(currentState.hashValue, currentState);
             path.add(currentState);
@@ -94,7 +96,8 @@ public class SearchAgent {
     private boolean unicost() {
         explored.put(currentState.hashValue, currentState);
         path.add(currentState);
-        PriorityQueue<State> fringe = new PriorityQueue<State>();
+        currentState.addChildren();
+        PriorityQueue<Edge> fringe = new PriorityQueue<Edge>();
         fringe.addAll(currentState.children);
         while(fringe.size() > 0) {
 
@@ -103,7 +106,7 @@ public class SearchAgent {
                 return true;
             }
 
-            currentState = fringe.poll();
+            currentState = fringe.poll().end;
             addFringeStates(fringe, currentState);
             explored.put(currentState.hashValue, currentState);
             path.add(currentState);
@@ -114,9 +117,10 @@ public class SearchAgent {
     private boolean iddfs() {
         int maxDepth = 1;
         int currentDepth = 0;
+        currentState.addChildren();
         explored.put(currentState.hashValue, currentState);
         path.add(currentState);
-        LinkedList<State> fringe = new LinkedList<State>();
+        LinkedList<Edge> fringe = new LinkedList<Edge>();
         fringe.addAll(currentState.children);
         while(maxDepth < Integer.MAX_VALUE) {
             while (fringe.size() > 0 || currentDepth > maxDepth) {
@@ -125,7 +129,7 @@ public class SearchAgent {
                     System.out.println("Problem solved");
                     return true;
                 }
-                currentState = fringe.remove(fringe.size() - 1);
+                currentState = fringe.remove(fringe.size() - 1).end;
                 addFringeStates(fringe, currentState);
                 explored.put(currentState.hashValue, currentState);
                 currentDepth++;
@@ -137,11 +141,11 @@ public class SearchAgent {
         return false;
     }
 
-    private void addFringeStates(Collection<State> fringe, State cState) {
+    private void addFringeStates(Collection<Edge> fringe, State cState) {
         for(int i = 0; i < cState.children.size(); i++) {
-            State s = cState.children.get(i);
-            if(explored.get(s.hashValue) == null) {
-                fringe.add(s);
+            Edge e = cState.children.get(i);
+            if(explored.get(e.end.hashValue) == null) {
+                fringe.add(e);
             }
         }
     }
@@ -154,34 +158,54 @@ public class SearchAgent {
     public class State implements Comparator<State> {
         private int[] value;
         private int hashValue;
-        private int stateID;
-        private double pathCost;
-        private State parent;
-        private ArrayList<State> children;
-        private State(int[] conf) {
+        private ArrayList<Edge> children;
+        private double cost;
+
+        private State(int[] conf, double c) {
             value = conf.clone();
             hashValue = Arrays.hashCode(value);
+            cost = c;
         }
-        private State(int[] conf, int hashCode) {
+        private State(int[] conf, int hashCode, double c) {
             value = conf.clone();
             hashValue = hashCode;
         }
 
-        private void addChildren(ArrayList<State> c) {
-            children = c;
+        private void addChildren() {
+            children = problem.expand(this);
+        }
+
+    }
+    private class Edge implements Comparator<Edge> {
+        private State end;
+        private double cost;
+        private Edge(State e, double c) {
+            end = e;
+            cost = c;
         }
 
         @Override
-        public int compare(State s1, State s2) {
+        public int compare(Edge e1, Edge e2) {
+            if(searchType == UNICOST) {
+                if(e1.end.cost > e2.end.cost) {
+                    return -1;
+                } else if(e1.end.cost < e2.end.cost) {
+                    return 1;
+                }
+            } else if (searchType == GREEDY) {
+                if(e1.end.cost > e2.end.cost) {
+                    return -1;
+                } else if(e1.end.cost < e2.end.cost) {
+                    return 1;
+                }
+            }
             return 0;
         }
     }
 
-    private class Edge {
 
-    }
     public interface Problem {
-        ArrayList<State> expand(State currentState);
+        ArrayList<Edge> expand(State currentState);
         boolean isGoalState(State state);
         State initialState();
 
@@ -233,9 +257,8 @@ public class SearchAgent {
                 sensorTargets[i] = 0; // all point to first sensor
             }
 
-            State init = new State(sensorTargets);
+            State init = new State(sensorTargets, totalCost(sensorTargets));
             createdStates.put(init.hashValue, init);
-
             return init;
         }
 
@@ -260,24 +283,35 @@ public class SearchAgent {
 
         @Override
         public boolean isGoalState(State state) {
+            boolean[] targetMonitored = new boolean[targets.size()];
+            for(int i = 0; i < state.value.length; i++) {
+                targetMonitored[state.value[i]] = true;
+            }
+            for(int i = 0; i < targetMonitored.length; i++) {
+                if(!targetMonitored[i]) return false;
+            }
             return true;
         }
 
         @Override
-        public ArrayList<State> expand(State state) {
-            ArrayList<State> children = new ArrayList<>();
+        public ArrayList<Edge> expand(State state) {
+            ArrayList<Edge> children = new ArrayList<>();
             for(int i = 0; i < state.value.length; i++) {
                 int[] childConfig = state.value.clone();
                 for(int j = childConfig[i] + 1; j%targets.size() != childConfig[i]; j++) {
+                    // This prevents one extra comparison each time (doing modular
                     childConfig[i] = j;
                     int hash = Arrays.hashCode(childConfig);
-                    if(!createdStates.containsKey(hash)){
-                        State s = new State(childConfig, hash);
+                    State s = createdStates.get(hash);
+                    if(s == null){ // If the state has been created
+                        s = new State(childConfig, hash, totalCost(childConfig));
                         createdStates.put(hash, s);
                     }
+                    Edge e = new Edge(s, s.cost - state.cost);
+                    children.add(e);
                 }
             }
-            return new ArrayList<State>();
+            return children;
         }
 
         private double getDistance(Sensor s, Target t) {
@@ -285,6 +319,19 @@ public class SearchAgent {
             double bSquared = Math.pow(s.locY - t.locY, 2);
             double distance = Math.sqrt(aSquared + bSquared);
             return distance;
+        }
+
+        private double totalCost(int[] config) {
+            double total = Double.MAX_VALUE;
+            for(int i = 0; i < config.length; i++){
+                Target t = targets.get(config[i]);
+                Sensor s = sensors.get(i);
+                double d = getDistance(s, t);
+                double time = s.power/d;
+                // only pay attention to minimum target up-time
+                total = Math.max(time, total);
+            }
+            return total;
         }
 
         private class Sensor {
