@@ -99,10 +99,11 @@ public class SearchAgent {
         explored.put(currentState.hashValue, currentState);
         path.add(currentState);
         currentState.addChildren();
-        PriorityQueue<Edge> fringe = new PriorityQueue<Edge>();
+        PriorityQueue<Edge> fringe = new PriorityQueue<Edge>(currentState.children.get(0));
         fringe.addAll(currentState.children);
         while(fringe.size() > 0) {
 
+//            System.out.println(currentState.toString());
             if(problem.isGoalState(currentState)) {
                 System.out.println("Problem solved");
                 return true;
@@ -128,7 +129,7 @@ public class SearchAgent {
         while(maxDepth < Integer.MAX_VALUE) {
             System.out.println("Max depth: " + maxDepth);
             LinkedList<Edge> nextFringe = new LinkedList<>();
-            while (currentDepth <= maxDepth) {
+            while (fringe.size() > 0 && currentDepth <= maxDepth) {
                 System.out.println(currentState.toString());
 
                 if (problem.isGoalState(currentState)) {
@@ -138,17 +139,36 @@ public class SearchAgent {
                 currentState = fringe.remove(fringe.size() - 1).end;
                 currentState.addChildren();
                 explored.put(currentState.hashValue, currentState);
+//                if(currentDepth == maxDepth && fringe.size())
                 addFringeStates(nextFringe, currentState);
-                if(fringe.size() == 0) {
-                    currentDepth++;
-                }
+
+                currentDepth++;
             }
-            fringe.addAll(nextFringe);
-            nextFringe = new LinkedList<>();
+//            fringe.addAll(nextFringe);
+//            nextFringe = new LinkedList<>();
             maxDepth++;
         }
 
         System.out.println("Reached maximum depth: ");
+        return false;
+    }
+
+    // How do I fringe then?
+    private boolean iddfsHelper(State s, int currentDepth, int maxDepth) {
+//        if(problem.isGoalState(s)) {
+//            return true;
+//        } else {
+//            currentDepth++;
+//            if(++currentDepth == maxDepth) {
+//                return false;
+//            } else {
+//                s.addChildren();
+//                for (int i = 0; i < s.children.size(); i++) {
+//                    State child = s.children.get(i);
+//                    return iddfsHelper()
+//                }
+//            }
+//        }
         return false;
     }
 
@@ -329,9 +349,9 @@ public class SearchAgent {
             double aSquared = Math.pow(s.locX - t.locX, 2);
             double bSquared = Math.pow(s.locY - t.locY, 2);
             double distance = Math.sqrt(aSquared + bSquared);
-            System.out.println(s.locX + ", " +  t.locX);
-            System.out.println(s.locY + ", " +  t.locY);
-            System.out.println(distance);
+//            System.out.println(s.locX + ", " +  t.locX);
+//            System.out.println(s.locY + ", " +  t.locY);
+//            System.out.println(distance);
             return distance;
         }
 
@@ -348,7 +368,7 @@ public class SearchAgent {
                 // only pay attention to minimum target up-time
                 total = Math.min(sensorCost[config[i]], total);
             }
-            System.out.println("Total cost for state: " + total);
+//            System.out.println("Total cost for state: " + total);
             return total;
         }
 
@@ -384,9 +404,12 @@ public class SearchAgent {
 
     private class Aggregation implements Problem{
         private String type;
-        private HashMap<String, Node> nodes;
+        private ArrayList<Node> nodes;
+        private Hashtable<String, Node> nodeTable;
+
         private Aggregation(Scanner fileScan) throws IOException{
-            nodes = new HashMap<>();
+            nodes = new ArrayList<>();
+            nodeTable = new Hashtable<>();
 
         }
 
@@ -397,7 +420,8 @@ public class SearchAgent {
             while(m.find()) {
                 String[] nodeInfo = m.group(1).split(",");
                 Node n = new Node(nodeInfo[0].replace('"', '\u0000'), Integer.parseInt(nodeInfo[1]), Integer.parseInt(nodeInfo[2]));
-                nodes.put(n.id, n);
+                nodes.add(n);
+                nodeTable.put(n.id, n);
             }
 
             while(fileScan.hasNextLine()) {
@@ -407,9 +431,8 @@ public class SearchAgent {
                     String[] connectInfo = m.group(1).split(",");
                     connectInfo[0] = connectInfo[0].replace('"', '\u0000');
                     connectInfo[1] = connectInfo[1].replace('"', '\u0000');
-                    nodes.get(connectInfo[0]).addConnection(nodes.get(connectInfo[1]), Integer.parseInt(connectInfo[2]));
-                    nodes.get(connectInfo[1]).addConnection(nodes.get(connectInfo[0]), Integer.parseInt(connectInfo[2]));
-
+                    nodeTable.get(connectInfo[0]).addConnection(nodeTable.get(connectInfo[1]), Integer.parseInt(connectInfo[2]));
+                    nodeTable.get(connectInfo[1]).addConnection(nodeTable.get(connectInfo[0]), Integer.parseInt(connectInfo[2]));
                 }
             }
         }
@@ -457,14 +480,13 @@ public class SearchAgent {
                 Connection c = new Connection(n, cost);
                 children.add(c);
             }
-
-            private class Connection {
-                private Node end;
-                private int cost;
-                private Connection(Node e, int c) {
-                    end = e;
-                    cost = c;
-                }
+        }
+        private class Connection {
+            private Node end;
+            private int cost;
+            private Connection(Node e, int c) {
+                end = e;
+                cost = c;
             }
         }
     }

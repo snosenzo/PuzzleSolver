@@ -13,6 +13,5 @@ public class Main {
         a.setSearch(searchType);
         a.search();
 
-
     }
 }
