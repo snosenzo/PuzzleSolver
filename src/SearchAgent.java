@@ -78,8 +78,11 @@ public class SearchAgent {
         fringe.addAll(currentState.children);
         while(fringe.size() > 0) {
 
+            System.out.println(currentState.toString());
             if(problem.isGoalState(currentState)) {
                 System.out.println("Problem solved");
+                System.out.println("Time: " + currentState.cost);
+                System.out.println("Space: " + "Frontier " + fringe.size() + " | Visited: "  + path.size());
                 return true;
             }
 
@@ -122,7 +125,9 @@ public class SearchAgent {
         LinkedList<Edge> fringe = new LinkedList<Edge>();
         fringe.addAll(currentState.children);
         while(maxDepth < Integer.MAX_VALUE) {
+            System.out.println("Max depth: " + maxDepth);
             while (fringe.size() > 0 || currentDepth > maxDepth) {
+                System.out.println("Current depth: " + currentDepth);
 
                 if (problem.isGoalState(currentState)) {
                     System.out.println("Problem solved");
@@ -133,6 +138,8 @@ public class SearchAgent {
                 explored.put(currentState.hashValue, currentState);
                 currentDepth++;
             }
+            fringe = new LinkedList<>();
+            currentDepth = 0;
             maxDepth++;
         }
 
@@ -174,6 +181,10 @@ public class SearchAgent {
             children = problem.expand(this);
         }
 
+        public String toString(){
+            return problem.getReadableValue(value);
+        }
+
     }
     private class Edge implements Comparator<Edge> {
         private State end;
@@ -207,7 +218,7 @@ public class SearchAgent {
         ArrayList<Edge> expand(State currentState);
         boolean isGoalState(State state);
         State initialState();
-
+        String getReadableValue(int[] config);
     }
 
 
@@ -219,6 +230,7 @@ public class SearchAgent {
         private Monitor(Scanner fileScan) throws IOException{
             sensors = new ArrayList<>();
             targets = new ArrayList<>();
+            createdStates = new Hashtable<>();
             monitorInit(fileScan);
         }
 
@@ -251,11 +263,9 @@ public class SearchAgent {
 
         public State initialState() {
             int[] sensorTargets = new int[sensors.size()];
-            StringBuilder stateValue = new StringBuilder("");
             for(int i = 0; i < sensors.size(); i++) {
                 sensorTargets[i] = 0; // all point to first sensor
             }
-
             State init = new State(sensorTargets, totalCost(sensorTargets));
             createdStates.put(init.hashValue, init);
             return init;
@@ -297,9 +307,10 @@ public class SearchAgent {
             ArrayList<Edge> children = new ArrayList<>();
             for(int i = 0; i < state.value.length; i++) {
                 int[] childConfig = state.value.clone();
-                for(int j = childConfig[i] + 1; j%targets.size() != childConfig[i]; j++) {
+                for(int j = childConfig[i] + 1; j%targets.size() != state.value[i]; j++) {
                     // This prevents one extra comparison each time (doing modular
-                    childConfig[i] = j;
+                    childConfig[i] = j%targets.size();
+//                    System.out.println(getReadableValue(childConfig));
                     int hash = Arrays.hashCode(childConfig);
                     State s = createdStates.get(hash);
                     if(s == null){ // If the state has been created
@@ -393,6 +404,16 @@ public class SearchAgent {
 
                 }
             }
+        }
+
+        // TODO FIX
+        public String getReadableValue(int[] sensorTargets) {
+            StringBuilder s = new StringBuilder("");
+//            for(int i = 0; i < sensorTargets.length; i++) {
+//                s.append(targets.get(sensorTargets[i]).id);
+//                if(i < sensorTargets.length - 1) s.append(",");
+//            }
+            return s.toString();
         }
 
         public State initialState() {
