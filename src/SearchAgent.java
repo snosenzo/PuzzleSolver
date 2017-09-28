@@ -74,7 +74,7 @@ public class SearchAgent {
         explored.put(currentState.hashValue, currentState);
         path.add(currentState);
         currentState.addChildren();
-        LinkedList<Edge> fringe = new LinkedList<Edge>();
+        LinkedList<Edge> fringe = new LinkedList<>();
         fringe.addAll(currentState.children);
         while(fringe.size() > 0) {
 
@@ -109,6 +109,7 @@ public class SearchAgent {
             }
 
             currentState = fringe.poll().end;
+            currentState.addChildren();
             addFringeStates(fringe, currentState);
             explored.put(currentState.hashValue, currentState);
             path.add(currentState);
@@ -122,24 +123,28 @@ public class SearchAgent {
         currentState.addChildren();
         explored.put(currentState.hashValue, currentState);
         path.add(currentState);
-        LinkedList<Edge> fringe = new LinkedList<Edge>();
+        LinkedList<Edge> fringe = new LinkedList<>();
         fringe.addAll(currentState.children);
         while(maxDepth < Integer.MAX_VALUE) {
             System.out.println("Max depth: " + maxDepth);
-            while (fringe.size() > 0 || currentDepth > maxDepth) {
-                System.out.println("Current depth: " + currentDepth);
+            LinkedList<Edge> nextFringe = new LinkedList<>();
+            while (currentDepth <= maxDepth) {
+                System.out.println(currentState.toString());
 
                 if (problem.isGoalState(currentState)) {
                     System.out.println("Problem solved");
                     return true;
                 }
                 currentState = fringe.remove(fringe.size() - 1).end;
-                addFringeStates(fringe, currentState);
+                currentState.addChildren();
                 explored.put(currentState.hashValue, currentState);
-                currentDepth++;
+                addFringeStates(nextFringe, currentState);
+                if(fringe.size() == 0) {
+                    currentDepth++;
+                }
             }
-            fringe = new LinkedList<>();
-            currentDepth = 0;
+            fringe.addAll(nextFringe);
+            nextFringe = new LinkedList<>();
             maxDepth++;
         }
 
@@ -156,11 +161,6 @@ public class SearchAgent {
         }
     }
 
-    private boolean isGoalState(State s) {
-        return true;
-    }
-
-
     public class State {
         private int[] value;
         private int hashValue;
@@ -175,6 +175,7 @@ public class SearchAgent {
         private State(int[] conf, int hashCode, double c) {
             value = conf.clone();
             hashValue = hashCode;
+            cost = c;
         }
 
         private void addChildren() {
@@ -328,19 +329,26 @@ public class SearchAgent {
             double aSquared = Math.pow(s.locX - t.locX, 2);
             double bSquared = Math.pow(s.locY - t.locY, 2);
             double distance = Math.sqrt(aSquared + bSquared);
+            System.out.println(s.locX + ", " +  t.locX);
+            System.out.println(s.locY + ", " +  t.locY);
+            System.out.println(distance);
             return distance;
         }
 
         private double totalCost(int[] config) {
             double total = Double.MAX_VALUE;
+            double[] sensorCost = new double[targets.size()];
+            Arrays.fill(sensorCost, 0);
             for(int i = 0; i < config.length; i++){
                 Target t = targets.get(config[i]);
                 Sensor s = sensors.get(i);
                 double d = getDistance(s, t);
                 double time = s.power/d;
+                sensorCost[config[i]]+=time;
                 // only pay attention to minimum target up-time
-                total = Math.max(time, total);
+                total = Math.min(sensorCost[config[i]], total);
             }
+            System.out.println("Total cost for state: " + total);
             return total;
         }
 
