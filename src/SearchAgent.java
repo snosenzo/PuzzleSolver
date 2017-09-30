@@ -258,11 +258,12 @@ public class SearchAgent {
         private void monitorInit(Scanner fileScan) throws IOException {
 
             String line = fileScan.nextLine();
+            // This finds everything with paretheses
             Matcher m = Pattern.compile("\\(([^)]+)\\)").matcher(line);
             while(m.find()) {
                 String[] sensorInfo = m.group(1).split(",");
                 Sensor s = new Sensor(
-                        sensorInfo[0].replace('"', '\u0000'),
+                        sensorInfo[0].replace("\"", ""),
                         Integer.parseInt(sensorInfo[1]),
                         Integer.parseInt(sensorInfo[2]),
                         Integer.parseInt(sensorInfo[3]));
@@ -274,7 +275,7 @@ public class SearchAgent {
             while(m.find()) {
                 String[] targetInfo = m.group(1).split(",");
                 Target t = new Target(
-                        targetInfo[0].replace('"', '\u0000'),
+                        targetInfo[0].replace("\"", ""),
                         Integer.parseInt(targetInfo[1]),
                         Integer.parseInt(targetInfo[2]));
 
@@ -421,7 +422,7 @@ public class SearchAgent {
                 String[] nodeInfo = m.group(1).split(",");
                 Node n = new Node(nodeInfo[0].replace('"', '\u0000'), Integer.parseInt(nodeInfo[1]), Integer.parseInt(nodeInfo[2]));
                 nodes.add(n);
-                nodeTable.put(n.id, n);
+                nodeTable.put(n.name, n);
             }
 
             while(fileScan.hasNextLine()) {
@@ -429,8 +430,8 @@ public class SearchAgent {
                 m = Pattern.compile("\\(([^)]+)\\)").matcher(line);
                 while(m.find()) {
                     String[] connectInfo = m.group(1).split(",");
-                    connectInfo[0] = connectInfo[0].replace('"', '\u0000');
-                    connectInfo[1] = connectInfo[1].replace('"', '\u0000');
+                    connectInfo[0] = connectInfo[0].replace("\"", "");
+                    connectInfo[1] = connectInfo[1].replace("\"", "");
                     nodeTable.get(connectInfo[0]).addConnection(nodeTable.get(connectInfo[1]), Integer.parseInt(connectInfo[2]));
                     nodeTable.get(connectInfo[1]).addConnection(nodeTable.get(connectInfo[0]), Integer.parseInt(connectInfo[2]));
                 }
@@ -441,14 +442,15 @@ public class SearchAgent {
         public String getReadableValue(int[] sensorTargets) {
             StringBuilder s = new StringBuilder("");
 //            for(int i = 0; i < sensorTargets.length; i++) {
-//                s.append(targets.get(sensorTargets[i]).id);
+//                s.append(targets.get(sensorTargets[i]).name);
 //                if(i < sensorTargets.length - 1) s.append(",");
 //            }
             return s.toString();
         }
 
         public State initialState() {
-            StringBuilder stateValue = new StringBuilder("");
+            int[] config = new int[nodes.size()];
+
             return new State(new int[2], 3, 1);
         }
 
@@ -462,23 +464,45 @@ public class SearchAgent {
             return new ArrayList<Edge>();
         }
 
+        private double calculateTotalCost(int[] config) {
+            double pathCost = 0;
+            // If there is no first node -- then the path cost will be infinite because no edges have been used yet
+            if(config[0] < 0 || config[1] < 0) {
+                return Integer.MAX_VALUE;
+            } else {
+                // Find edges
+                Node n1 = nodes.get(config[0]);
+                for(int pathIndex = 0; pathIndex < config.length-1; pathIndex++) {
+                    if(config[pathIndex)
+                    n1 = nodes.get(config[pathIndex]);
+                    for (int i = 0; i < n1.connections.size(); i++) {
+                        Connection c = n1.connections.get(i);
+                        if(c.end.id == config[pathIndex]) {
+                            pathCost += c.cost;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
 
-        private class Node {
-            private String id;
+        public class Node {
+            private String name;
+            private int id;
             private int locX;
             private int locY;
-            private ArrayList<Connection> children;
+            private ArrayList<Connection> connections;
 
             private Node(String name, int x, int y) {
-                id = name;
+                this.name = name;
                 locX = x;
                 locY = y;
-                children = new ArrayList<>();
+                connections = new ArrayList<>();
             }
 
             private void addConnection(Node n, int cost) {
                 Connection c = new Connection(n, cost);
-                children.add(c);
+                connections.add(c);
             }
         }
         private class Connection {
