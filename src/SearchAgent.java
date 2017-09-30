@@ -107,10 +107,13 @@ public class SearchAgent {
             System.out.println(currentState.toString());
             if(problem.isGoalState(currentState)) {
                 System.out.println("Problem solved");
+                System.out.println("Time: " + currentState.cost);
+                System.out.println("Space: " + "Frontier " + fringe.size() + " | Visited: "  + path.size());
                 return true;
             }
 
             currentState = fringe.poll().end;
+            path.add(currentState);
             currentState.addChildren();
             addFringeStates(fringe, currentState);
             explored.put(currentState.hashValue, currentState);
@@ -134,9 +137,12 @@ public class SearchAgent {
 
                 if (problem.isGoalState(currentState)) {
                     System.out.println("Problem solved");
+                    System.out.println("Time: " + currentState.cost);
+                    System.out.println("Space: " + "Frontier " + fringe.size() + " | Visited: "  + path.size());
                     return true;
                 }
                 currentState = fringe.remove(fringe.size() - 1).end;
+                path.add(currentState);
                 currentState.addChildren();
                 explored.put(currentState.hashValue, currentState);
                 if( currentState.depth < maxDepth) {
