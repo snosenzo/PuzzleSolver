@@ -32,8 +32,10 @@ public class SearchAgent {
         problemType = fileScan.nextLine();
         if(problemType.equals("monitor")) {
             problem = new Monitor(fileScan);
-        } else if(problemType.equals("aggregation")) {
+        } else if(problemType.equals("Aggregation")) {
             problem = new Aggregation(fileScan);
+        } else {
+            System.out.println("Problem type not found");
         }
     }
 
@@ -102,8 +104,7 @@ public class SearchAgent {
         PriorityQueue<Edge> fringe = new PriorityQueue<Edge>(currentState.children.get(0));
         fringe.addAll(currentState.children);
         while(fringe.size() > 0) {
-
-//            System.out.println(currentState.toString());
+            System.out.println(currentState.toString());
             if(problem.isGoalState(currentState)) {
                 System.out.println("Problem solved");
                 return true;
@@ -120,7 +121,7 @@ public class SearchAgent {
 
     private boolean iddfs() {
         int maxDepth = 1;
-        int currentDepth = 0;
+//        int currentDepth = 0;
         currentState.addChildren();
         explored.put(currentState.hashValue, currentState);
         path.add(currentState);
@@ -129,7 +130,7 @@ public class SearchAgent {
         while(maxDepth < Integer.MAX_VALUE) {
             System.out.println("Max depth: " + maxDepth);
             LinkedList<Edge> nextFringe = new LinkedList<>();
-            while (fringe.size() > 0 && currentDepth <= maxDepth) {
+            while (fringe.size() > 0) {
                 System.out.println(currentState.toString());
 
                 if (problem.isGoalState(currentState)) {
@@ -139,36 +140,15 @@ public class SearchAgent {
                 currentState = fringe.remove(fringe.size() - 1).end;
                 currentState.addChildren();
                 explored.put(currentState.hashValue, currentState);
-//                if(currentDepth == maxDepth && fringe.size())
-                addFringeStates(nextFringe, currentState);
+                if( currentState.depth < maxDepth) {
+                    addFringeStates(nextFringe, currentState);
+                }
 
-                currentDepth++;
             }
-//            fringe.addAll(nextFringe);
-//            nextFringe = new LinkedList<>();
             maxDepth++;
         }
 
         System.out.println("Reached maximum depth: ");
-        return false;
-    }
-
-    // How do I fringe then?
-    private boolean iddfsHelper(State s, int currentDepth, int maxDepth) {
-//        if(problem.isGoalState(s)) {
-//            return true;
-//        } else {
-//            currentDepth++;
-//            if(++currentDepth == maxDepth) {
-//                return false;
-//            } else {
-//                s.addChildren();
-//                for (int i = 0; i < s.children.size(); i++) {
-//                    State child = s.children.get(i);
-//                    return iddfsHelper()
-//                }
-//            }
-//        }
         return false;
     }
 
@@ -186,6 +166,8 @@ public class SearchAgent {
         private int hashValue;
         private ArrayList<Edge> children;
         private double cost;
+        private int depth;
+
 
         private State(int[] conf, double c) {
             value = conf.clone();
@@ -204,6 +186,10 @@ public class SearchAgent {
 
         public String toString(){
             return problem.getReadableValue(value);
+        }
+
+        private void setDepth(int d) {
+            depth = d;
         }
 
     }
@@ -258,7 +244,7 @@ public class SearchAgent {
         private void monitorInit(Scanner fileScan) throws IOException {
 
             String line = fileScan.nextLine();
-            // This finds everything with paretheses
+            // This finds everything with parentheses
             Matcher m = Pattern.compile("\\(([^)]+)\\)").matcher(line);
             while(m.find()) {
                 String[] sensorInfo = m.group(1).split(",");
@@ -290,6 +276,7 @@ public class SearchAgent {
             }
             State init = new State(sensorTargets, totalCost(sensorTargets));
             createdStates.put(init.hashValue, init);
+            init.setDepth(0);
             return init;
         }
 
@@ -337,6 +324,7 @@ public class SearchAgent {
                     State s = createdStates.get(hash);
                     if(s == null){ // If the state has been created
                         s = new State(childConfig, hash, totalCost(childConfig));
+                        s.setDepth(state.depth + 1);
                         createdStates.put(hash, s);
                     }
                     Edge e = new Edge(s, s.cost - state.cost);
@@ -411,6 +399,8 @@ public class SearchAgent {
         private Aggregation(Scanner fileScan) throws IOException{
             nodes = new ArrayList<>();
             nodeTable = new Hashtable<>();
+            type = "aggregation";
+            aggregationInit(fileScan);
 
         }
 
@@ -418,10 +408,12 @@ public class SearchAgent {
 
             String line = fileScan.nextLine();
             Matcher m = Pattern.compile("\\(([^)]+)\\)").matcher(line);
+            int nodesArrayIndex = 0;
             while(m.find()) {
                 String[] nodeInfo = m.group(1).split(",");
-                Node n = new Node(nodeInfo[0].replace('"', '\u0000'), Integer.parseInt(nodeInfo[1]), Integer.parseInt(nodeInfo[2]));
+                Node n = new Node(nodeInfo[0].replace("\"", ""), nodesArrayIndex, Integer.parseInt(nodeInfo[1]), Integer.parseInt(nodeInfo[2]));
                 nodes.add(n);
+                nodesArrayIndex++;
                 nodeTable.put(n.name, n);
             }
 
@@ -439,29 +431,84 @@ public class SearchAgent {
         }
 
         // TODO FIX
-        public String getReadableValue(int[] sensorTargets) {
+        public String getReadableValue(int[] config) {
             StringBuilder s = new StringBuilder("");
-//            for(int i = 0; i < sensorTargets.length; i++) {
-//                s.append(targets.get(sensorTargets[i]).name);
-//                if(i < sensorTargets.length - 1) s.append(",");
-//            }
+            for(int i = 0; i < config.length; i++) {
+                if(config[i] == -1 ){
+                    break;
+                }
+                s.append(nodes.get(config[i]).name);
+                if(i < config.length - 1) s.append(",");
+            }
             return s.toString();
         }
 
         public State initialState() {
             int[] config = new int[nodes.size()];
-
-            return new State(new int[2], 3, 1);
+            Arrays.fill(config, -1);
+            State s = new State(config, 0);
+            s.setDepth(0);
+            s.addChildren();
+            return s;
         }
 
         @Override
         public boolean isGoalState(State state) {
+            int[] config = state.value;
+            boolean[] visitAllNodes = new boolean[nodes.size()];
+            Arrays.fill(visitAllNodes, false);
+            for(int i = 0; i < config.length; i++) {
+                if(config[i] == -1 ) {
+                    return false;
+                }
+                if(visitAllNodes[config[i]]) {
+                    return false;
+                }
+                visitAllNodes[config[i]] = true;
+            }
             return true;
         }
 
         @Override
         public ArrayList<Edge> expand(State currentState) {
-            return new ArrayList<Edge>();
+            ArrayList<Edge> children = new ArrayList<Edge>();
+            if(currentState.value[0] == -1) {
+                int[] config = currentState.value.clone();
+                for(int i = 0; i < nodes.size(); i++) {
+                    config[0] = i;
+                    State s = new State(config, 0);
+                    s.setDepth(currentState.depth + 1);
+                    children.add(new Edge(s, 0));
+                }
+            } else {
+                int[] config = currentState.value.clone();
+                int pathIndex = -1;
+
+                for (int i = 0; i < currentState.value.length; i++) {
+                    if (config[i] == -1) {
+                        pathIndex = i;
+                        break;
+                    }
+                }
+
+                if(pathIndex == -1) {
+                    return children;
+                }
+
+                Node branchNode = nodes.get(pathIndex);
+                for(int i = 0; i < branchNode.connections.size(); i++) {
+                    Connection c = branchNode.connections.get(i);
+                    if(config[pathIndex - 1] != c.end.id) {
+                        config[pathIndex] = c.end.id;
+                        State s = new State(config, currentState.cost + c.cost);
+                        s.setDepth(currentState.depth + 1);
+                        Edge e = new Edge(s, c.cost);
+                        children.add(e);
+                    }
+                }
+            }
+            return children;
+
         }
 
         private double calculateTotalCost(int[] config) {
@@ -473,17 +520,21 @@ public class SearchAgent {
                 // Find edges
                 Node n1 = nodes.get(config[0]);
                 for(int pathIndex = 0; pathIndex < config.length-1; pathIndex++) {
-                    if(config[pathIndex)
-                    n1 = nodes.get(config[pathIndex]);
-                    for (int i = 0; i < n1.connections.size(); i++) {
-                        Connection c = n1.connections.get(i);
-                        if(c.end.id == config[pathIndex]) {
-                            pathCost += c.cost;
-                            break;
+                    if(config[pathIndex] > 0) {
+                        n1 = nodes.get(config[pathIndex]);
+                        for (int i = 0; i < n1.connections.size(); i++) {
+                            Connection c = n1.connections.get(i);
+                            if (c.end.id == config[pathIndex]) {
+                                pathCost += c.cost;
+                                break;
+                            }
                         }
+                    } else {
+                        break;
                     }
                 }
             }
+            return pathCost;
         }
 
         public class Node {
@@ -493,8 +544,9 @@ public class SearchAgent {
             private int locY;
             private ArrayList<Connection> connections;
 
-            private Node(String name, int x, int y) {
+            private Node(String name, int ID, int x, int y) {
                 this.name = name;
+                id = ID;
                 locX = x;
                 locY = y;
                 connections = new ArrayList<>();
