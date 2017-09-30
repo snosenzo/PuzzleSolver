@@ -129,8 +129,7 @@ public class SearchAgent {
         fringe.addAll(currentState.children);
         while(maxDepth < Integer.MAX_VALUE) {
             System.out.println("Max depth: " + maxDepth);
-            LinkedList<Edge> nextFringe = new LinkedList<>();
-            while (fringe.size() > 0) {
+            while (fringe.size() > 0 && currentState.depth < maxDepth) {
                 System.out.println(currentState.toString());
 
                 if (problem.isGoalState(currentState)) {
@@ -141,9 +140,8 @@ public class SearchAgent {
                 currentState.addChildren();
                 explored.put(currentState.hashValue, currentState);
                 if( currentState.depth < maxDepth) {
-                    addFringeStates(nextFringe, currentState);
+                    addFringeStates(fringe, currentState);
                 }
-
             }
             maxDepth++;
         }
