@@ -8,6 +8,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class SearchAgent {
+
     private Hashtable<Integer, State> explored;
     private ArrayList<State> path;
     private int searchType;
@@ -15,6 +16,7 @@ public class SearchAgent {
     private Problem problem;
     private String problemType;
     private State currentState;
+
     final private int BFS = 0;
     final private int UNICOST = 1;
     final private int GREEDY = 2;
@@ -34,6 +36,8 @@ public class SearchAgent {
             problem = new Monitor(fileScan);
         } else if(problemType.equals("Aggregation")) {
             problem = new Aggregation(fileScan);
+        } else if(problemType.equals("pancakes")) {
+            problem = new Pancakes(fileScan);
         } else {
             System.out.println("Problem type not found");
         }
@@ -569,5 +573,62 @@ public class SearchAgent {
                 cost = c;
             }
         }
+    }
+
+    private class Pancakes implements Problem{
+
+        int numPancakes;
+        int[] initialConfig;
+        Hashtable<Integer, State> createdStates;
+        String type;
+
+        private Pancakes(Scanner fileScan) {
+            type = "aggregation";
+            createdStates = new Hashtable<>();
+            pancakesInit(fileScan);
+        }
+
+        private void pancakesInit(Scanner fileScan) {
+            String pStackLine = fileScan.nextLine();
+            Matcher m = Pattern.compile("\\(([^)]+)\\)").matcher(pStackLine);
+            while(m.find()) {
+                String[] pStack = m.group(1).split(",");
+                numPancakes = pStack.length;
+                initialConfig = new int[numPancakes];
+                for (int i = 0; i < numPancakes; i++) {
+                    initialConfig[i] = Integer.parseInt(pStack[i]);
+                    System.out.println(initialConfig[i]);
+                }
+
+            }
+        }
+
+        public boolean isGoalState(State s) {
+            return false;
+        }
+
+        public String getReadableValue(int[] config) {
+            return "";
+        }
+
+        public State initialState() {
+            State s = new State(new int[7], 0.0);
+            return s;
+        }
+
+        public ArrayList<Edge> expand(State currentState) {
+
+            ArrayList<Edge> children =  new ArrayList<Edge>();
+
+            return children;
+        }
+
+        private double pathCost() {
+            return 0.0;
+        }
+
+
+
+
     }
 }
