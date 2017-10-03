@@ -1,0 +1,9 @@
+T_1,T_1,T_1
+T_1,T_1,T_3
+T_1,T_2,T_1
+T_1,T_2,T_2
+T_1,T_2,T_3
+Problem solved
+Time: 25
+Space -- Max Frontier: 20 | Visited: 5
+Final path cost: 88.0

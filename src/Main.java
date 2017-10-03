@@ -82,7 +82,7 @@ public class Main {
             searchTypeName = type;
 
             try {
-                writer = new PrintWriter(problemType + "-" + searchType + "out.txt");
+                writer = new PrintWriter(problemType + "-" + searchTypeName + "-out.txt");
             } catch (FileNotFoundException e) {
                 System.out.println(e.toString());
                 System.exit(23423);
@@ -94,30 +94,31 @@ public class Main {
 
             if(searchType == BFS) {
                 if(!breadthFirst()) {
-                    System.out.println("Solution not found.");
-                    System.out.println("Nodes explored: " + path.size());
+                    writer.println("Solution not found.");
+                    writer.println("Nodes explored: " + path.size());
                 };
             } else if(searchType == UNICOST) {
                 if(!unicost()) {
-                    System.out.println("Solution not found.");
-                    System.out.println("Nodes explored: " + path.size());
+                    writer.println("Solution not found.");
+                    writer.println("Nodes explored: " + path.size());
                 }
             } else if(searchType == GREEDY) {
                 if(!unicost()) {
-                    System.out.println("Solution not found.");
-                    System.out.println("Nodes explored: " + path.size());
+                    writer.println("Solution not found.");
+                    writer.println("Nodes explored: " + path.size());
                 }
             } else if(searchType == IDDFS) {
                 if(!iddfs()) {
-                    System.out.println("Solution not found.");
-                    System.out.println("Nodes explored: " + path.size());
+                    writer.println("Solution not found.");
+                    writer.println("Nodes explored: " + path.size());
                 };
             } else if(searchType == ASTAR) {
                 if(!unicost()) {
-                    System.out.println("Solution not found.");
-                    System.out.println("Nodes explored: " + path.size());
+                    writer.println("Solution not found.");
+                    writer.println("Nodes explored: " + path.size());
                 }
             }
+            writer.close();
 
         }
 
@@ -130,7 +131,7 @@ public class Main {
             fringe.addAll(currentState.children);
             while(fringe.size() > 0) {
 
-                System.out.println(currentState.toString());
+                writer.println(currentState.toString());
                 if(problem.isGoalState(currentState)) {
                     printResults(fringe.size() + path.size(), maxFringeSize, path.size(), currentState.cost);
                     return true;
@@ -154,10 +155,10 @@ public class Main {
             PriorityQueue<Edge> fringe = new PriorityQueue<Edge>(currentState.children.get(0));
             fringe.addAll(currentState.children);
             while(fringe.size() > 0) {
-                System.out.println(currentState.toString());
+                writer.println(currentState.toString());
 
                 if(searchType == GREEDY || searchType == ASTAR) {
-                    System.out.println("heuristic value: " + currentState.heuristicCost);
+//                    writer.println("heuristic value: " + currentState.heuristicCost);
                 }
                 if(problem.isGoalState(currentState)) {
                     printResults(fringe.size() + path.size(), maxFringeSize, path.size(), currentState.cost);
@@ -185,18 +186,16 @@ public class Main {
             LinkedList<Edge> fringe = new LinkedList<>();
             fringe.addAll(currentState.children);
             while(maxDepth < Integer.MAX_VALUE) {
-                System.out.println("Max depth: " + maxDepth);
-
+                writer.println("Max depth: " + maxDepth);
+                writer.println(currentState.toString());
                 while (fringe.size() > 0) {
-                    System.out.println(currentState.toString());
+
 
                     currentState = fringe.remove(fringe.size() - 1).end;
                     path.add(currentState);
                     explored.put(currentState.hashValue, currentState);
+                    writer.println(currentState.toString());
                     if (problem.isGoalState(currentState)) {
-                        System.out.println("Problem solved");
-                        System.out.println("Time: " + currentState.cost);
-                        System.out.println("Space: " + "Frontier " + fringe.size() + " | Visited: "  + path.size());
                         printResults(fringe.size() + path.size(), maxFringeSize, path.size(), currentState.cost);
                         return true;
                     }
@@ -216,15 +215,15 @@ public class Main {
                 maxDepth++;
             }
 
-            System.out.println("Reached maximum depth: ");
+            writer.println("Reached maximum depth: ");
             return false;
         }
 
         private void printResults(int nodesCreated, int maxFrontier, int exploredNum, double finalCost){
-            System.out.println("Problem solved");
-            System.out.println("Time: " + nodesCreated);
-            System.out.println("Space -- " + "Max Frontier: " + maxFrontier + " | Visited: "  + exploredNum);
-            System.out.println("Final path cost: " + finalCost);
+            writer.println("Problem solved");
+            writer.println("Time: " + nodesCreated);
+            writer.println("Space -- " + "Max Frontier: " + maxFrontier + " | Visited: "  + exploredNum);
+            writer.println("Final path cost: " + finalCost);
         }
 
         private void addFringeStates(Collection<Edge> fringe, State cState) {
@@ -728,7 +727,6 @@ public class Main {
                         initialConfig[i] = Integer.parseInt(pStack[i]);
                         System.out.println(initialConfig[i]);
                     }
-
                 }
             }
 
@@ -792,16 +790,17 @@ public class Main {
                 int enumerator = 0; // # of values out of place
                 for(int i = config.length-1; i >= 0; i--) {
                     if(config[i] != i + 1) {
-                        enumerator+=2;
-                        break;
+                        enumerator+=1;
                     }
                 }
-                for(int i= 0; i < config.length; i++ ) {
-                    if(config[i] != -1*i) {
-                        enumerator++;
-                        break;
-                    }
-                }
+                // This heuristic allows for the preference of a negative reverse order
+                // This would eventually allow for the higher heuristic of the correct order and orientation
+//                for(int i = config.length-1; i >= 0; i--) {
+//                    if(config[config.length-1-i] != -1*(i+1)) {
+//                        enumerator+=1;
+//                    }
+//                }
+
                 return enumerator;
             }
 

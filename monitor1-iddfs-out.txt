@@ -1,0 +1,17 @@
+Max depth: 1
+T_1,T_1,T_1
+T_1,T_1,T_3
+T_1,T_1,T_2
+T_1,T_3,T_1
+T_1,T_2,T_1
+T_3,T_1,T_1
+T_2,T_1,T_1
+Max depth: 2
+T_1,T_1,T_1
+T_1,T_1,T_3
+T_1,T_1,T_2
+T_1,T_3,T_2
+Problem solved
+Time: 16
+Space -- Max Frontier: 13 | Visited: 4
+Final path cost: 31.11269837220809

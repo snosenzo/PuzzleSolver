@@ -1,0 +1,7 @@
+T_1,T_1,T_1
+T_2,T_1,T_1
+T_2,T_3,T_1
+Problem solved
+Time: 17
+Space -- Max Frontier: 14 | Visited: 3
+Final path cost: 31.11269837220809
