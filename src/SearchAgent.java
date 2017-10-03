@@ -16,6 +16,7 @@ public class SearchAgent {
     private Problem problem;
     private String problemType;
     private State currentState;
+    PrintWriter writer;
 
     final private int BFS = 0;
     final private int UNICOST = 1;
@@ -59,12 +60,23 @@ public class SearchAgent {
             System.exit(3);
         }
         searchTypeName = type;
+
+        try {
+            writer = new PrintWriter(problemType + "-" + searchType + "out.txt");
+        } catch (FileNotFoundException e) {
+            System.out.println(e.toString());
+            System.exit(23423);
+        }
     }
 
     public void search() {
         currentState = problem.initialState();
+
         if(searchType == BFS) {
-            breadthFirst();
+            if(breadthFirst()) {
+                System.out.println("Solution not found.");
+                System.out.println("Nodes explored: ");
+            };
         } else if(searchType == UNICOST) {
             unicost();
         } else if(searchType == GREEDY) {
@@ -125,7 +137,6 @@ public class SearchAgent {
             currentState.addChildren();
             addFringeStates(fringe, currentState);
             explored.put(currentState.hashValue, currentState);
-            path.add(currentState);
         }
         return false;
     }
@@ -281,15 +292,15 @@ public class SearchAgent {
                 }
             } else if (searchType == ASTAR) {
                 if(problemType == "monitor") {
-                    if (e1.end.heuristicCost > e2.end.heuristicCost) {
+                    if (e1.end.heuristicCost-e1.end.cost > e2.end.heuristicCost-e2.end.cost) {
                         return -1;
-                    } else if (e1.end.heuristicCost < e2.end.heuristicCost) {
+                    } else if (e1.end.heuristicCost-e1.end.cost < e2.end.heuristicCost-e2.end.cost) {
                         return 1;
                     }
                 } else {
-                    if (e1.end.heuristicCost < e2.end.heuristicCost) {
+                    if (e1.end.heuristicCost+e1.end.cost < e2.end.heuristicCost+e1.end.cost) {
                         return -1;
-                    } else if (e1.end.heuristicCost > e2.end.heuristicCost) {
+                    } else if (e1.end.heuristicCost+e1.end.cost > e2.end.heuristicCost+e2.end.cost) {
                         return 1;
                     }
                 }
@@ -589,7 +600,7 @@ public class SearchAgent {
                     return children;
                 }
 
-                Node branchNode = nodes.get(pathIndex);
+                Node branchNode = nodes.get(config[pathIndex-1]);
                 for(int i = 0; i < branchNode.connections.size(); i++) {
                     Connection c = branchNode.connections.get(i);
                     if(config[pathIndex - 1] != c.end.id) {
@@ -778,3 +789,5 @@ public class SearchAgent {
 
     }
 }
+
+
