@@ -68,10 +68,11 @@ public class SearchAgent {
         } else if(searchType == UNICOST) {
             unicost();
         } else if(searchType == GREEDY) {
-            searchType = GREEDY;
+            unicost();
         } else if(searchType == IDDFS) {
             iddfs();
         } else if(searchType == ASTAR) {
+            iddfs();
             searchType = ASTAR;
         }
     }
@@ -109,6 +110,9 @@ public class SearchAgent {
         fringe.addAll(currentState.children);
         while(fringe.size() > 0) {
             System.out.println(currentState.toString());
+            if(searchType == GREEDY || searchType == ASTAR) {
+                System.out.println("heuristic value: " + currentState.heuristicCost);
+            }
             if(problem.isGoalState(currentState)) {
                 System.out.println("Problem solved");
                 System.out.println("Time: " + currentState.cost);
@@ -160,6 +164,31 @@ public class SearchAgent {
         return false;
     }
 
+    private boolean aStar() {
+        explored.put(currentState.hashValue, currentState);
+        path.add(currentState);
+        currentState.addChildren();
+        PriorityQueue<Edge> fringe = new PriorityQueue<Edge>(currentState.children.get(0));
+        fringe.addAll(currentState.children);
+        while(fringe.size() > 0) {
+            System.out.println(currentState.toString());
+            if(problem.isGoalState(currentState)) {
+                System.out.println("Problem solved");
+                System.out.println("Time: " + currentState.cost);
+                System.out.println("Space: " + "Frontier " + fringe.size() + " | Visited: "  + path.size());
+                return true;
+            }
+
+            currentState = fringe.poll().end;
+            path.add(currentState);
+            currentState.addChildren();
+            addFringeStates(fringe, currentState);
+            explored.put(currentState.hashValue, currentState);
+            path.add(currentState);
+        }
+        return false;
+    }
+
     private void addFringeStates(Collection<Edge> fringe, State cState) {
         for(int i = 0; i < cState.children.size(); i++) {
             Edge e = cState.children.get(i);
@@ -172,6 +201,7 @@ public class SearchAgent {
     public class State {
         private int[] value;
         private int hashValue;
+        private double heuristicCost;
         private ArrayList<Edge> children;
         private double cost;
         private int depth;
@@ -189,7 +219,13 @@ public class SearchAgent {
         }
 
         private void addChildren() {
+
             children = problem.expand(this);
+            if(searchType == GREEDY || searchType == ASTAR) {
+                for(Edge c: children) {
+                    c.end.setHeuristic();
+                }
+            }
         }
 
         public String toString(){
@@ -198,6 +234,10 @@ public class SearchAgent {
 
         private void setDepth(int d) {
             depth = d;
+        }
+
+        private void setHeuristic(){
+            heuristicCost = problem.heuristic(this);
         }
 
     }
@@ -212,16 +252,46 @@ public class SearchAgent {
         @Override
         public int compare(Edge e1, Edge e2) {
             if(searchType == UNICOST) {
-                if(e1.end.cost > e2.end.cost) {
-                    return -1;
-                } else if(e1.end.cost < e2.end.cost) {
-                    return 1;
+                if(problemType == "monitor") {
+                    if (e1.cost > e2.cost) {
+                        return -1;
+                    } else if (e1.cost < e2.cost) {
+                        return 1;
+                    }
+                } else {
+                    if (e1.cost < e2.cost) {
+                        return -1;
+                    } else if (e1.cost > e2.cost) {
+                        return 1;
+                    }
                 }
             } else if (searchType == GREEDY) {
-                if(e1.end.cost > e2.end.cost) {
-                    return -1;
-                } else if(e1.end.cost < e2.end.cost) {
-                    return 1;
+                if(problemType == "monitor") {
+                    if (e1.end.heuristicCost > e2.end.heuristicCost) {
+                        return -1;
+                    } else if (e1.end.heuristicCost < e2.end.heuristicCost) {
+                        return 1;
+                    }
+                } else {
+                    if (e1.end.heuristicCost < e2.end.heuristicCost) {
+                        return -1;
+                    } else if (e1.end.heuristicCost > e2.end.heuristicCost) {
+                        return 1;
+                    }
+                }
+            } else if (searchType == ASTAR) {
+                if(problemType == "monitor") {
+                    if (e1.end.heuristicCost > e2.end.heuristicCost) {
+                        return -1;
+                    } else if (e1.end.heuristicCost < e2.end.heuristicCost) {
+                        return 1;
+                    }
+                } else {
+                    if (e1.end.heuristicCost < e2.end.heuristicCost) {
+                        return -1;
+                    } else if (e1.end.heuristicCost > e2.end.heuristicCost) {
+                        return 1;
+                    }
                 }
             }
             return 0;
@@ -234,6 +304,7 @@ public class SearchAgent {
         boolean isGoalState(State state);
         State initialState();
         String getReadableValue(int[] config);
+        double heuristic(State s);
     }
 
 
@@ -334,9 +405,11 @@ public class SearchAgent {
                         s = new State(childConfig, hash, totalCost(childConfig));
                         s.setDepth(state.depth + 1);
                         createdStates.put(hash, s);
+                        Edge e = new Edge(s, s.cost - state.cost);
+                        children.add(e);
                     }
-                    Edge e = new Edge(s, s.cost - state.cost);
-                    children.add(e);
+
+
                 }
             }
             return children;
@@ -367,6 +440,19 @@ public class SearchAgent {
             }
 //            System.out.println("Total cost for state: " + total);
             return total;
+        }
+
+        // Goal is to maximize the heuristic so that it can be incorporated with the cost function
+        public double heuristic(State state) {
+            boolean[] targetMonitored = new boolean[targets.size()];
+            int enumerator = 0;
+            for(int i = 0; i < state.value.length; i++) {
+                targetMonitored[state.value[i]] = true;
+            }
+            for(int i = 0; i < targetMonitored.length; i++) {
+                if(!targetMonitored[i]) enumerator++;
+            }
+            return enumerator;
         }
 
         private class Sensor {
@@ -516,7 +602,6 @@ public class SearchAgent {
                 }
             }
             return children;
-
         }
 
         private double calculateTotalCost(int[] config) {
@@ -543,6 +628,29 @@ public class SearchAgent {
                 }
             }
             return pathCost;
+        }
+
+        // returns how many nodes still need to be visited
+        // goal is to minimize
+        public double heuristic(State state) {
+            int[] config = state.value;
+            boolean[] visitAllNodes = new boolean[nodes.size()];
+            Arrays.fill(visitAllNodes, false);
+            for(int i = 0; i < config.length; i++) {
+                if(config[i] == -1 ) {
+                    break;
+                }
+                visitAllNodes[config[i]] = true;
+            }
+            double enumerator = config.length;
+
+            for(int i = 0; i < config.length; i++) {
+                if(visitAllNodes[i]) {
+                    enumerator--;
+                }
+            }
+
+            return enumerator;
         }
 
         public class Node {
@@ -604,31 +712,69 @@ public class SearchAgent {
         }
 
         public boolean isGoalState(State s) {
-            return false;
+            for(int i = 0; i < s.value.length; i++ ){
+                if(s.value[i] != i+1) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         public String getReadableValue(int[] config) {
-            return "";
+            StringBuilder s = new StringBuilder("");
+            for(int i = 0; i < config.length; i++) {
+                s.append(config[i] + "");
+                if(i < config.length - 1) s.append(",");
+            }
+            return s.toString();
         }
 
         public State initialState() {
-            State s = new State(new int[7], 0.0);
+            State s = new State(initialConfig, 0);
+            createdStates.put(Arrays.hashCode(initialConfig), s);
+            s.setDepth(0);
             return s;
         }
 
         public ArrayList<Edge> expand(State currentState) {
 
             ArrayList<Edge> children =  new ArrayList<Edge>();
+            for(int i = 1; i < currentState.value.length; i++) {
+                int[] childConfig = flipPancakes(currentState.value, i);
+                int hashCode =Arrays.hashCode(childConfig);
+                State child = createdStates.get(hashCode);
+                if(child == null) {
+                    child = new State(childConfig, hashCode, currentState.cost + 1.0);
+                    createdStates.put(hashCode, child);
+                    child.setDepth(currentState.depth + 1);
+                    Edge e = new Edge(child, child.cost - currentState.cost);
+                    children.add(e);
+                }
+
+            }
 
             return children;
         }
 
-        private double pathCost() {
-            return 0.0;
+        // loc is the index after the last pancake being flipped (i.e. the pancake @ loc does not get flipped)
+        private int[] flipPancakes(int[] config, int loc) {
+            int[] flipped = config.clone();
+            for(int i = 0; i < loc; i++) {
+                flipped[i] = -1*config[loc - i - 1];
+            }
+            return flipped;
         }
 
-
-
+        // heuristic should prefer the minimum value
+        public double heuristic(State s) {
+            int[] config = s.value;
+            for(int i = config.length-1; i >= 0; i--) {
+                if(config[i] != i + 1) {
+                    return i;
+                }
+            }
+            return 0;
+        }
 
     }
 }
