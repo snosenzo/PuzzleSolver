@@ -7,7 +7,6 @@ import java.util.regex.Pattern;
 public class Main {
 
     public static void main(String[] args) throws IOException {
-        System.out.println(args.length);
         String filename = args[0];
         String searchType = args[1];
 
@@ -725,7 +724,7 @@ public class Main {
                     initialConfig = new int[numPancakes];
                     for (int i = 0; i < numPancakes; i++) {
                         initialConfig[i] = Integer.parseInt(pStack[i]);
-                        System.out.println(initialConfig[i]);
+//                        System.out.println(initialConfig[i]);
                     }
                 }
             }
@@ -758,7 +757,7 @@ public class Main {
             public ArrayList<Edge> expand(State currentState) {
 
                 ArrayList<Edge> children =  new ArrayList<Edge>();
-                for(int i = 1; i < currentState.value.length; i++) {
+                for(int i = 1; i <= currentState.value.length; i++) {
                     int[] childConfig = flipPancakes(currentState.value, i);
                     int hashCode =Arrays.hashCode(childConfig);
                     State child = createdStates.get(hashCode);
@@ -789,19 +788,20 @@ public class Main {
                 int[] config = s.value;
                 int enumerator = 0; // # of values out of place
                 for(int i = config.length-1; i >= 0; i--) {
+                    // if a value is out of place
                     if(config[i] != i + 1) {
-                        enumerator+=1;
+                        return i+1;
                     }
                 }
-                // This heuristic allows for the preference of a negative reverse order
-                // This would eventually allow for the higher heuristic of the correct order and orientation
+//                // This heuristic allows for the preference of a negative reverse order
+//                // This would eventually allow for the higher heuristic of the correct order and orientation
 //                for(int i = config.length-1; i >= 0; i--) {
 //                    if(config[config.length-1-i] != -1*(i+1)) {
 //                        enumerator+=1;
 //                    }
 //                }
 
-                return enumerator;
+                return 0;
             }
 
         }
